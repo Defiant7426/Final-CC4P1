@@ -59,13 +59,19 @@ public class RaftNode {
         int majority = (peers.length / 2) + 1;
 
         // Petición de voto a los demás nodos
+        boolean anyPeerAvailable = false;
         for (String peer : peers) {
             if (askForVote(peer)) {
                 votesGranted++;
+                anyPeerAvailable = true;
             }
         }
+        if(!anyPeerAvailable) {
+            System.out.println("RAFT: No hay otros nodos disponibles, convirtiéndonos en lider");
+            becomeLeader();
+        }
 
-        if (votesGranted >= majority) { // Ganamos la elección
+        else if (votesGranted >= majority) { // Ganamos la elección
             System.out.println("RAFT: Elección ganada, votes="+votesGranted);
             becomeLeader(); // Nos convertimos en líder
         } else {
