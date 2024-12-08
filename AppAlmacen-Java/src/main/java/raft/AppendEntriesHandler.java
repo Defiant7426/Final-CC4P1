@@ -8,6 +8,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
+/**
+    * Clase que maneja las peticiones de AppendEntries.
+ */
+
 public class AppendEntriesHandler implements HttpHandler {
     private RaftNode raftNode;
 
