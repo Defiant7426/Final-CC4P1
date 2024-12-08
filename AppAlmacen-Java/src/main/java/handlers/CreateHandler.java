@@ -28,27 +28,28 @@ public class CreateHandler implements HttpHandler {
             return;
         }
 
-        // Lectura de parámetros (x-www-form-urlencoded)
-        String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
-        Map<String,String> params = parseParams(body);
-
-        // Aquí en una implementación RAFT real, el líder replicaría esta operación.
-        // Suponiendo que este nodo es el líder (no se verifica en este ejemplo),
-        // podríamos simplemente aplicar la operación:
-        String id = service.createRecord(params);
-
         if(!raft.isLeader()) {
             // Si no somos líder, redirigimos la petición al líder
-            System.out.println("Rederigiendo petición al líder, que es "+raft.getLeader());
+            System.out.println("Rederigiendo petición al lider, que es "+raft.getLeader());
             String leader = raft.getLeader();
             exchange.getResponseHeaders().add("Location", leader);
             exchange.sendResponseHeaders(307, -1);
             return;
         }
 
-        int index = raft.appendLogEntry(id);
-        raft.replicatedLogEntry(index);
-        String response = "{\"status\":\"accepted\"}";
+        // Estamos en el líder, procesamos la petición
+
+        System.out.println("HTTP Lider: Recibiendo peticion de creación de registro");
+
+        // Lectura de parámetros (x-www-form-urlencoded)
+        String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+        Map<String,String> params = parseParams(body);
+
+        String id = service.createRecord(params);
+
+        int index = raft.appendLogEntry(id); // Agregar la operación al log
+        raft.replicatedLogEntry(index); // Replicar la operación
+        String response = "{\"status\":\"accepted\"}"; // Respuesta aceptada
         byte[] respBytes = response.getBytes(StandardCharsets.UTF_8);
         exchange.sendResponseHeaders(202, respBytes.length);
         exchange.getResponseBody().write(respBytes);

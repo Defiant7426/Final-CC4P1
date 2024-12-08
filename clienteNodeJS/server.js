@@ -26,6 +26,8 @@ app.post('/createProduct', async (req, res) => {
     params.append("AMOUNT", AMOUNT);
     params.append("COST", COST);
 
+    console.log("Enviando datos al almacén:", params);
+
     try {
         const response = await fetch(`${ALMACEN_URL}/create`, {
             method: 'POST',
