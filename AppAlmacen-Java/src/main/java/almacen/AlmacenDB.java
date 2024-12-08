@@ -86,4 +86,8 @@ public class AlmacenDB {
         System.out.println("BD: Registro no encontrado: "+id);
         return false;
     }
+
+    public int getMaxId() {
+        return records.keySet().stream().mapToInt(Integer::parseInt).max().orElse(0);
+    }
 }

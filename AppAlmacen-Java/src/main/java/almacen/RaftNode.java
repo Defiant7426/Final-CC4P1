@@ -178,4 +178,44 @@ public class RaftNode {
 
     // En un líder, al recibir una nueva operación (ej: create), la agregaríamos al log y luego replicaríamos.
 
+    public synchronized int appendLogEntry(String entry) {
+        if (role != RaftRole.LEADER) return -1; // Solo el líder puede agregar entradas
+        LogEntry logEntry = new LogEntry(currentTerm, entry);
+        log.add(logEntry);
+        return log.size()-1; // Devolvemos el índice de la nueva entrada
+    }
+
+    public synchronized void replicatedLogEntry(int index) { // Marca una entrada como replicada
+        if (role != RaftRole.LEADER) return; // Solo el líder puede replicar
+        if (index < 0 || index >= log.size()) return; // Índice inválido
+        String entry = log.get(index).entry;
+        for (String peer : peers) {
+            replicateEntry(peer, index, entry);
+        }
+    }
+
+    private void replicateEntry(String peer, int index, String entry) {
+        try {
+            URL url = new URL(peer+"/replicateEntry");
+            HttpURLConnection con = (HttpURLConnection) url.openConnection();
+            con.setRequestMethod("POST");
+            con.setDoOutput(true);
+            con.setRequestProperty("Content-Type","application/json");
+            String body = "{\"term\":"+currentTerm+", \"leaderId\":\"self\", \"index\":"+index+", \"entry\":\""+entry+"\"}";
+            try(OutputStream os = con.getOutputStream()){
+                os.write(body.getBytes(StandardCharsets.UTF_8));
+            }
+            con.getResponseCode(); // ignoramos respuesta
+        } catch (Exception e) {
+            // Peer no disponible, ignoramos por ahora
+        }
+    }
+
+    public boolean isLeader() {
+        return role == RaftRole.LEADER;
+    }
+
+    public String getLeader() {
+        return leaderId;
+    }
 }

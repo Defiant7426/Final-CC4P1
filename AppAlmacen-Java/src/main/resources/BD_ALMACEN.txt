@@ -1,4 +1,5 @@
-ID_PROD | NAME_PROD | DETAIL | UNIT | AMOUNT | COST
+ID_PROD|NAME_PROD|DETAIL|UNIT|AMOUNT|COST
+11|nuevecito|LapizHB123|pcs|100|0.5
 1|Laptop Dell|Core i5|Unidad|50|700.00
 2|Mouse Logitech|Óptico|Unidad|200|15.00
 3|Teclado Genius|USB|Unidad|100|20.00

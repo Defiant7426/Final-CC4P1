@@ -37,12 +37,30 @@ public class CreateHandler implements HttpHandler {
         // podríamos simplemente aplicar la operación:
         String id = service.createRecord(params);
 
-        String response = "{\"status\":\"ok\",\"id\":\""+id+"\"}";
+        if(!raft.isLeader()) {
+            // Si no somos líder, redirigimos la petición al líder
+            System.out.println("Rederigiendo petición al líder, que es "+raft.getLeader());
+            String leader = raft.getLeader();
+            exchange.getResponseHeaders().add("Location", leader);
+            exchange.sendResponseHeaders(307, -1);
+            return;
+        }
+
+        int index = raft.appendLogEntry(id);
+        raft.replicatedLogEntry(index);
+        String response = "{\"status\":\"accepted\"}";
         byte[] respBytes = response.getBytes(StandardCharsets.UTF_8);
-        exchange.sendResponseHeaders(200, respBytes.length);
-        OutputStream os = exchange.getResponseBody();
-        os.write(respBytes);
-        os.close();
+        exchange.sendResponseHeaders(202, respBytes.length);
+        exchange.getResponseBody().write(respBytes);
+        exchange.close();
+
+
+//        String response = "{\"status\":\"ok\",\"id\":\""+id+"\"}";
+//        byte[] respBytes = response.getBytes(StandardCharsets.UTF_8);
+//        exchange.sendResponseHeaders(200, respBytes.length);
+//        OutputStream os = exchange.getResponseBody();
+//        os.write(respBytes);
+//        os.close();
     }
 
     private Map<String,String> parseParams(String body) {
@@ -58,5 +76,20 @@ public class CreateHandler implements HttpHandler {
             }
         }
         return map;
+    }
+
+    private String createCommandJson(String op, Map<String,String> data) {
+        // Convertir data a JSON (simple)
+        // Por ejemplo:
+        StringBuilder sb = new StringBuilder();
+        sb.append("{\"op\":\"").append(op).append("\", \"data\":{");
+        boolean first = true;
+        for (var e : data.entrySet()) {
+            if(!first) sb.append(",");
+            sb.append("\"").append(e.getKey()).append("\":\"").append(e.getValue()).append("\"");
+            first=false;
+        }
+        sb.append("}}");
+        return sb.toString();
     }
 }
