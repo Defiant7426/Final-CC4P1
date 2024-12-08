@@ -1,7 +1,6 @@
 package almacen;
 
 public class LogEntry {
-    public String entry;
     private int term;
     private String command; // Podrías guardar la operación CRUD
 
