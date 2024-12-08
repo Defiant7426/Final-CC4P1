@@ -14,6 +14,7 @@ const ALMACEN_URL = "http://localhost:8082";
 // Crear un producto en el almacén
 // Se espera que el cliente envíe por POST los datos: NAME_PROD, DETAIL, UNIT, AMOUNT, COST
 app.post('/createProduct', async (req, res) => {
+    console.log("Creando producto en el almacén...");
     const { NAME_PROD, DETAIL, UNIT, AMOUNT, COST } = req.body;
 
     // Realizar la petición al servicio Almacén (Java)
@@ -33,6 +34,7 @@ app.post('/createProduct', async (req, res) => {
         });
 
         const data = await response.json();
+        console.log("Producto creado en el almacén:", data);
         return res.json(data);
     } catch (err) {
         console.error(err);
