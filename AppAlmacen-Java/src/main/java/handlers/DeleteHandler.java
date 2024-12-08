@@ -21,6 +21,7 @@ public class DeleteHandler implements HttpHandler {
     public void handle(HttpExchange exchange) throws IOException {
         if (!"DELETE".equalsIgnoreCase(exchange.getRequestMethod())) {
             exchange.sendResponseHeaders(405, -1);
+            exchange.close();
             return;
         }
 

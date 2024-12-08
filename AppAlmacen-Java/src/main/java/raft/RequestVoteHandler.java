@@ -19,6 +19,7 @@ public class RequestVoteHandler implements HttpHandler {
     public void handle(HttpExchange exchange) throws IOException {
         if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
             exchange.sendResponseHeaders(405, -1);
+            exchange.close();
             return;
         }
         InputStream in = exchange.getRequestBody();

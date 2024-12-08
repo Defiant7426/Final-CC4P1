@@ -18,6 +18,7 @@ public class StatusHandler implements HttpHandler {
     public void handle(HttpExchange exchange) throws IOException {
         if (!"GET".equalsIgnoreCase(exchange.getRequestMethod())) {
             exchange.sendResponseHeaders(405, -1);
+            exchange.close();
             return;
         }
 

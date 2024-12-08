@@ -15,7 +15,7 @@ public class MainAlmacen {
 
         AlmacenDB db = new AlmacenDB("src/main/resources/BD_ALMACEN.txt"); // Creamos la base de datos
         db.load(); // Cargamos la base de datos desde el archivo
-        RaftNode raftNode = new RaftNode(peers);
+        RaftNode raftNode = new RaftNode(port, peers);
         AlmacenService service = new AlmacenService(db, raftNode); // Inyectamos la base de datos y el nodo Raft
 
         HttpServerAlmacen server = new HttpServerAlmacen(port, service, raftNode); // Inyectamos el servicio y el nodo Raft

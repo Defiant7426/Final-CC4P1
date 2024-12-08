@@ -25,15 +25,32 @@ public class CreateHandler implements HttpHandler {
     public void handle(HttpExchange exchange) throws IOException {
         if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
             exchange.sendResponseHeaders(405, -1);
+            exchange.close();
             return;
         }
 
         if(!raft.isLeader()) {
             // Si no somos líder, redirigimos la petición al líder
-            System.out.println("Rederigiendo petición al lider, que es "+raft.getLeader());
-            String leader = raft.getLeader();
-            exchange.getResponseHeaders().add("Location", leader);
-            exchange.sendResponseHeaders(307, -1);
+            // Redirigir al líder
+            String entry = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+            int responseCode = raft.redirectToLeader(entry);
+            if (responseCode == -1) {
+                String response = "Error redirigiendo al líder";
+                System.out.println(response);
+                exchange.sendResponseHeaders(500, response.length());
+                try (OutputStream os = exchange.getResponseBody()) {
+                    os.write(response.getBytes(StandardCharsets.UTF_8));
+                }
+                exchange.close();
+            } else {
+                String response = "Redirigido al líder";
+                System.out.println(response);
+                exchange.sendResponseHeaders(200, response.length());
+                try (OutputStream os = exchange.getResponseBody()) {
+                    os.write(response.getBytes(StandardCharsets.UTF_8));
+                }
+                exchange.close();
+            }
             return;
         }
 

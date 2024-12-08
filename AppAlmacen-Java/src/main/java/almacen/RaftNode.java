@@ -26,14 +26,19 @@ public class RaftNode {
     // Líder actual conocido
     private String leaderId = null;
 
+    // Puerto e IP del nodo actual
+    private final String ip = "http://127.0.0.1:";
+    private int port = -1;
+
     //private final Random random = new Random();
 
     // Scheduler para tareas periódicas
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     private long lastHeartbeat = System.currentTimeMillis(); // Último heartbeat recibido
 
-    public RaftNode(String[] peers) {
+    public RaftNode(int port, String[] peers) {
         this.peers = peers;
+        this.port = port;
         // Iniciamos el timeout de seguidor
         startFollowerTimeout();
         System.out.println("RAFT: Nodo creado con "+peers.length+" peers ("+String.join(", ",peers)+")");
@@ -112,7 +117,7 @@ public class RaftNode {
 
     private void becomeLeader() { // Nos convertimos en líder
         role = RaftRole.LEADER;
-        leaderId = "self";
+        leaderId = this.ip + this.port;
         startHeartbeats();
     }
 
@@ -130,22 +135,25 @@ public class RaftNode {
         }
     }
 
-    private void sendAppendEntries(String peer) { // Envía un heartbeat a un seguidor
-        try {
-            URL url = new URL(peer+"/appendEntries");
-            HttpURLConnection con = (HttpURLConnection) url.openConnection();
-            con.setRequestMethod("POST");
-            con.setDoOutput(true);
-            con.setRequestProperty("Content-Type","application/json");
-            String body = "{\"term\":"+currentTerm+", \"leaderId\":\"self\", \"entries\":[]}";
-            try(OutputStream os = con.getOutputStream()){
-                os.write(body.getBytes(StandardCharsets.UTF_8));
-            }
-            con.getResponseCode(); // ignoramos respuesta
-        } catch (Exception e) {
-            // Peer no disponible, ignoramos por ahora
+    private void sendAppendEntries(String peer) {
+    try {
+        URL url = new URL(peer + "/appendEntries");
+        HttpURLConnection con = (HttpURLConnection) url.openConnection();
+        con.setConnectTimeout(2000);
+        con.setReadTimeout(2000);
+        con.setRequestMethod("POST");
+        con.setDoOutput(true);
+        con.setRequestProperty("Content-Type", "application/json");
+        String body = "{\"term\":" + currentTerm + ", \"leaderId\":\"" + leaderId + "\", \"entries\":[]}";
+        try (OutputStream os = con.getOutputStream()) {
+            os.write(body.getBytes(StandardCharsets.UTF_8));
         }
+        con.getResponseCode(); // ignoramos respuesta
+
+    } catch (Exception e) {
+        // Peer no disponible, ignoramos por ahora
     }
+}
 
     public synchronized String getStatus() { // Devuelve el estado del nodo
         return "Role: "+role+", Term: "+currentTerm+", Leader: "+leaderId+", LogSize: "+log.size();
@@ -159,7 +167,7 @@ public class RaftNode {
             role = RaftRole.FOLLOWER;
             lastHeartbeat = System.currentTimeMillis();
         }
-        // Ignoramos entradas en esta versión simplificada
+
     }
 
     public synchronized boolean handleRequestVote(int term, String candidateId) { // Maneja petición de voto
@@ -178,37 +186,87 @@ public class RaftNode {
 
     // En un líder, al recibir una nueva operación (ej: create), la agregaríamos al log y luego replicaríamos.
 
-    public synchronized int appendLogEntry(String entry) {
-        if (role != RaftRole.LEADER) return -1; // Solo el líder puede agregar entradas
+    public synchronized int appendLogEntry(String entry) { // Agrega una entrada al log
+        if (entry == null) {
+            System.err.println("appendLogEntry: 'entry' es null, no se puede agregar al log");
+            return -1;
+        }
         LogEntry logEntry = new LogEntry(currentTerm, entry);
+        System.out.println("RAFT: Agregando entrada al log: " + logEntry);
         log.add(logEntry);
-        return log.size()-1; // Devolvemos el índice de la nueva entrada
+        int index = log.size() - 1; // Devolvemos el índice de la nueva entrada
+        replicatedLogEntry(index); // Replicamos la entrada a los seguidores
+        return index;
     }
 
     public synchronized void replicatedLogEntry(int index) { // Marca una entrada como replicada
+        System.out.println("RAFT: Replicando entrada "+index);
         if (role != RaftRole.LEADER) return; // Solo el líder puede replicar
+        System.out.println("LLEGO AQUI");
         if (index < 0 || index >= log.size()) return; // Índice inválido
+        System.out.println("LLEGO AQUI 2");
         String entry = log.get(index).entry;
+        System.out.println("LLEGO AQUI 3");
         for (String peer : peers) {
+            System.out.println("LLEGO AQUI 4");
+            System.out.println("RAFT: Replicando entrada "+index+" a "+peer);
+            System.out.println("entry: "+entry);
             replicateEntry(peer, index, entry);
         }
     }
 
     private void replicateEntry(String peer, int index, String entry) {
         try {
+            System.out.println("RAFT: Replicando entrada "+index+" a "+peer);
             URL url = new URL(peer+"/replicateEntry");
             HttpURLConnection con = (HttpURLConnection) url.openConnection();
+            con.setConnectTimeout(2000);
+            con.setReadTimeout(2000);
+            System.out.println("LLEGO AQUI 5");
             con.setRequestMethod("POST");
             con.setDoOutput(true);
             con.setRequestProperty("Content-Type","application/json");
-            String body = "{\"term\":"+currentTerm+", \"leaderId\":\"self\", \"index\":"+index+", \"entry\":\""+entry+"\"}";
+            String body = "{\"term\":" + currentTerm + ", \"leaderId\":\"" + leaderId + "\", \"index\":" + index + ", \"entry\":\"" + entry + "\"}";
             try(OutputStream os = con.getOutputStream()){
                 os.write(body.getBytes(StandardCharsets.UTF_8));
             }
+            System.out.println("LLEGO AQUI 6");
             con.getResponseCode(); // ignoramos respuesta
         } catch (Exception e) {
             // Peer no disponible, ignoramos por ahora
         }
+    }
+
+    public int redirectToLeader(String entry) {
+    System.out.println("RAFT: Redirigiendo petición al líder, que es " + leaderId);
+    if (role == RaftRole.LEADER) return -1; // Si somos líder, no redirigimos
+    try {
+        URL url = new URL(leaderId + "/appendLogEntry");
+        HttpURLConnection con = (HttpURLConnection) url.openConnection();
+//        con.setConnectTimeout(2000);
+//        con.setReadTimeout(2000);
+        con.setRequestMethod("POST");
+        con.setDoOutput(true);
+        con.setRequestProperty("Content-Type", "application/json");
+        String body = "{\"entry\":\"" + entry + "\"}";
+        try (OutputStream os = con.getOutputStream()) {
+            os.write(body.getBytes(StandardCharsets.UTF_8));
+        }
+        int code = con.getResponseCode();
+        if (code == 200) {
+            try (InputStream in = con.getInputStream()) {
+                String resp = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+                System.out.println("RAFT: Respuesta del líder: " + resp);
+                return Integer.parseInt(resp);
+            }
+        } else {
+            System.err.println("RAFT: Error redirigiendo al líder, código de respuesta: " + code);
+        }
+        } catch (Exception e) {
+            System.err.println("RAFT: Excepción redirigiendo al líder: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return -1; // Indicar que la redirección falló
     }
 
     public boolean isLeader() {
