@@ -43,7 +43,7 @@ public class RaftNode {
         scheduler.scheduleAtFixedRate(() -> {
             long now = System.currentTimeMillis();
             // Si no recibimos heartbeat en, 3000ms, iniciamos elección
-            System.out.println("RAFT: Role="+role+", LastHeartbeat="+(now-lastHeartbeat));
+            System.out.println("RAFT: Role="+role+", LastHeartbeat="+(now-lastHeartbeat) + " Term="+currentTerm);
             if (role == RaftRole.FOLLOWER && (now - lastHeartbeat > 3000)) {
                 startElection();
             }
@@ -65,17 +65,21 @@ public class RaftNode {
             }
         }
 
-        if (votesGranted >= majority) {
-            becomeLeader();
+        if (votesGranted >= majority) { // Ganamos la elección
+            System.out.println("RAFT: Elección ganada, votes="+votesGranted);
+            becomeLeader(); // Nos convertimos en líder
         } else {
             // Si no ganamos, volveremos a ser follower o reintentar
             role = RaftRole.FOLLOWER;
+            System.out.println("RAFT: Elección perdida");
         }
     }
 
     private boolean askForVote(String peer) {
         try {
-            URL url = new URL(peer+"/requestVote");
+            System.out.println("RAFT: Pidiendo voto a "+peer);
+            // Aqui se hace la petición HTTP al endpoint /requestVote para pedir el voto
+            URL url = new URL(peer+"/requestVote"); // URL del endpoint
             HttpURLConnection con = (HttpURLConnection) url.openConnection();
             con.setRequestMethod("POST");
             con.setDoOutput(true);
@@ -83,9 +87,8 @@ public class RaftNode {
 
             String body = "{\"term\":"+currentTerm+", \"candidateId\":\"self\"}";
             try(OutputStream os = con.getOutputStream()){
-                os.write(body.getBytes(StandardCharsets.UTF_8));
+                os.write(body.getBytes(StandardCharsets.UTF_8)); // Enviamos la petición
             }
-
             int code = con.getResponseCode();
             if (code == 200) {
                 // Leemos la respuesta
@@ -101,13 +104,13 @@ public class RaftNode {
         return false;
     }
 
-    private void becomeLeader() {
+    private void becomeLeader() { // Nos convertimos en líder
         role = RaftRole.LEADER;
         leaderId = "self";
         startHeartbeats();
     }
 
-    private void startHeartbeats() {
+    private void startHeartbeats() { // Inicia el envío de heartbeats
         scheduler.scheduleAtFixedRate(() -> {
             if (role == RaftRole.LEADER) {
                 sendHeartbeats();
@@ -115,13 +118,13 @@ public class RaftNode {
         }, 0, 1000, TimeUnit.MILLISECONDS);
     }
 
-    private void sendHeartbeats() {
+    private void sendHeartbeats() { // Envía heartbeats a los seguidores
         for (String peer : peers) {
             sendAppendEntries(peer);
         }
     }
 
-    private void sendAppendEntries(String peer) {
+    private void sendAppendEntries(String peer) { // Envía un heartbeat a un seguidor
         try {
             URL url = new URL(peer+"/appendEntries");
             HttpURLConnection con = (HttpURLConnection) url.openConnection();
@@ -138,7 +141,7 @@ public class RaftNode {
         }
     }
 
-    public synchronized String getStatus() {
+    public synchronized String getStatus() { // Devuelve el estado del nodo
         return "Role: "+role+", Term: "+currentTerm+", Leader: "+leaderId+", LogSize: "+log.size();
     }
 
@@ -153,14 +156,14 @@ public class RaftNode {
         // Ignoramos entradas en esta versión simplificada
     }
 
-    public synchronized boolean handleRequestVote(int term, String candidateId) {
-        if (term > currentTerm) {
+    public synchronized boolean handleRequestVote(int term, String candidateId) { // Maneja petición de voto
+        if (term > currentTerm) { // Si el término es mayor, nos convertimos en seguidores
             currentTerm = term;
             votedFor = null;
             role = RaftRole.FOLLOWER;
         }
 
-        if (votedFor == null || votedFor.equals(candidateId)) {
+        if (votedFor == null || votedFor.equals(candidateId)) { //  Votamos por el candidato
             votedFor = candidateId;
             return true;
         }
@@ -168,5 +171,5 @@ public class RaftNode {
     }
 
     // En un líder, al recibir una nueva operación (ej: create), la agregaríamos al log y luego replicaríamos.
-    // Aquí omitimos esa lógica detallada.
+
 }
