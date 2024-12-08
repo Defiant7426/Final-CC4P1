@@ -31,7 +31,6 @@ public class CreateHandler implements HttpHandler {
 
         if(!raft.isLeader()) {
             // Si no somos líder, redirigimos la petición al líder
-            // Redirigir al líder
             String entry = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
             int responseCode = raft.redirectToLeader(entry);
             if (responseCode == -1) {
@@ -54,31 +53,30 @@ public class CreateHandler implements HttpHandler {
             return;
         }
 
-        // Estamos en el líder, procesamos la petición
-
         System.out.println("HTTP Lider: Recibiendo peticion de creación de registro");
 
-        // Lectura de parámetros (x-www-form-urlencoded)
         String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
         Map<String,String> params = parseParams(body);
 
         String id = service.createRecord(params);
+        System.out.println("HTTP Lider: Registro creado con id: "+id);
 
-        int index = raft.appendLogEntry(id); // Agregar la operación al log
-        raft.replicatedLogEntry(index); // Replicar la operación
-        String response = "{\"status\":\"accepted\"}"; // Respuesta aceptada
+        // Construir el comando completo
+        String command = "create " +
+                (params.get("NAME_PROD") == null ? "" : params.get("NAME_PROD")) + " " +
+                (params.get("DETAIL") == null ? "" : params.get("DETAIL")) + " " +
+                (params.get("UNIT") == null ? "" : params.get("UNIT")) + " " +
+                (params.get("AMOUNT") == null ? "" : params.get("AMOUNT")) + " " +
+                (params.get("COST") == null ? "" : params.get("COST"));
+
+        int index = raft.appendLogEntry(command); // Agregar la operación al log
+        raft.replicatedLogEntry(index); // Replicar la operación a otros nodos
+
+        String response = "{\"status\":\"accepted\"}";
         byte[] respBytes = response.getBytes(StandardCharsets.UTF_8);
         exchange.sendResponseHeaders(202, respBytes.length);
         exchange.getResponseBody().write(respBytes);
         exchange.close();
-
-
-//        String response = "{\"status\":\"ok\",\"id\":\""+id+"\"}";
-//        byte[] respBytes = response.getBytes(StandardCharsets.UTF_8);
-//        exchange.sendResponseHeaders(200, respBytes.length);
-//        OutputStream os = exchange.getResponseBody();
-//        os.write(respBytes);
-//        os.close();
     }
 
     private Map<String,String> parseParams(String body) {
@@ -94,20 +92,5 @@ public class CreateHandler implements HttpHandler {
             }
         }
         return map;
-    }
-
-    private String createCommandJson(String op, Map<String,String> data) {
-        // Convertir data a JSON (simple)
-        // Por ejemplo:
-        StringBuilder sb = new StringBuilder();
-        sb.append("{\"op\":\"").append(op).append("\", \"data\":{");
-        boolean first = true;
-        for (var e : data.entrySet()) {
-            if(!first) sb.append(",");
-            sb.append("\"").append(e.getKey()).append("\":\"").append(e.getValue()).append("\"");
-            first=false;
-        }
-        sb.append("}}");
-        return sb.toString();
     }
 }

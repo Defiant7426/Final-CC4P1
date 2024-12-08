@@ -26,7 +26,7 @@ public class HttpServerAlmacen {
         server.createContext("/appendEntries", new AppendEntriesHandler(raftNode)); // Para replicar logs
         server.createContext("/requestVote", new RequestVoteHandler(raftNode)); // Para elecciones de líder
         server.createContext("/appendLogEntry", new AppendLogEntryHandler(raftNode)); // Para añadir una entrada al log
-        server.createContext("/replicateEntry", new ReplicateEntryHandler(raftNode)); // Para replicar una entrada del log
+        server.createContext("/replicateEntry", new ReplicateEntryHandler(raftNode, service)); // Para replicar una entrada del log
 
         // Estado del nodo
         server.createContext("/status", new StatusHandler(raftNode)); // Para obtener el estado del nodo

@@ -24,6 +24,7 @@ public class AppendLogEntryHandler implements HttpHandler {
             // Parse the request body to extract the log entry
             String entry = parseEntryFromRequestBody(requestBody);
             int index = raftNode.appendLogEntry(entry);
+            raftNode.replicatedLogEntry(index);
             String response = String.valueOf(index);
             exchange.sendResponseHeaders(200, response.length());
             try (OutputStream os = exchange.getResponseBody()) {
