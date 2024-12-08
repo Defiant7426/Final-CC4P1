@@ -16,4 +16,9 @@ public class LogEntry {
     public String getCommand() {
         return command;
     }
+
+    @Override
+    public String toString() {
+        return "LogEntry{term=" + term + ", command='" + command + "'}";
+    }
 }
