@@ -14,7 +14,7 @@ public class MainAlmacen {
         String[] peers = peersArg.split(",");
 
         AlmacenDB db = new AlmacenDB("src/main/resources/BD_ALMACEN.txt"); // Creamos la base de datos
-        db.load();
+        db.load(); // Cargamos la base de datos desde el archivo
         RaftNode raftNode = new RaftNode(peers);
         AlmacenService service = new AlmacenService(db, raftNode); // Inyectamos la base de datos y el nodo Raft
 

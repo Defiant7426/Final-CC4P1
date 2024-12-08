@@ -10,43 +10,49 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Implementación simplificada de RAFT
+ * Implementación simplificada de RAFT.
+ * Los mensajes con términos más altos son considerados más recientes y tienen mayor autoridad.
+ * nodo incrementa su currentTerm cuando inicia una elección.
  */
 public class RaftNode {
-    private String[] peers;
-    private RaftRole role = RaftRole.FOLLOWER;
-    private int currentTerm = 0;
-    private String votedFor = null;
-    private List<LogEntry> log = new ArrayList<>();
-    private int commitIndex = -1;
-    private int lastApplied = -1;
+    private final String[] peers; // URLs de los otros nodos
+    private RaftRole role = RaftRole.FOLLOWER; // Inicialmente somos seguidores
+    private int currentTerm = 0; // Término actual (el nodo con mayor término es líder)
+    private String votedFor = null; // Voto actual
+    private List<LogEntry> log = new ArrayList<>();  // Log de operaciones
+    //private final int commitIndex = -1; // Índice de log aplicado
+    //private final int lastApplied = -1; // Último índice aplicado
 
     // Líder actual conocido
-    private String leaderId = null; // No implementado a fondo, aquí podrías guardar una identificación del líder
+    private String leaderId = null;
 
-    private final Random random = new Random();
+    //private final Random random = new Random();
 
-    private ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
-    private long lastHeartbeat = System.currentTimeMillis();
+    // Scheduler para tareas periódicas
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+    private long lastHeartbeat = System.currentTimeMillis(); // Último heartbeat recibido
 
     public RaftNode(String[] peers) {
         this.peers = peers;
-        // Start follower timeout
+        // Iniciamos el timeout de seguidor
         startFollowerTimeout();
+        System.out.println("RAFT: Nodo creado con "+peers.length+" peers ("+String.join(", ",peers)+")");
     }
 
-    private void startFollowerTimeout() {
+    private void startFollowerTimeout() { // Inicia el timeout de seguidor
         scheduler.scheduleAtFixedRate(() -> {
             long now = System.currentTimeMillis();
-            // Si no recibimos heartbeat en, digamos, 3000ms, iniciamos elección
+            // Si no recibimos heartbeat en, 3000ms, iniciamos elección
+            System.out.println("RAFT: Role="+role+", LastHeartbeat="+(now-lastHeartbeat));
             if (role == RaftRole.FOLLOWER && (now - lastHeartbeat > 3000)) {
                 startElection();
             }
-        }, 1000, 1000, TimeUnit.MILLISECONDS);
+        }, 1000, 1000, TimeUnit.MILLISECONDS); // Cada segundo
     }
 
     private void startElection() {
-        role = RaftRole.CANDIDATE;
+        System.out.println("RAFT: Iniciando elección");
+        role = RaftRole.CANDIDATE; // Cambiamos a candidato
         currentTerm++;
         votedFor = "self"; // nos votamos a nosotros mismos
         int votesGranted = 1;
