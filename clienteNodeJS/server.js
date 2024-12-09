@@ -89,9 +89,23 @@ app.post('/updateProduct', async (req, res) => {
 app.delete('/deleteProduct/:id', async (req, res) => {
     const id = req.params.id;
     try {
-        const response = await fetch(`${ALMACEN_URL}/delete?id=${id}`, {
-            method: 'DELETE'
+        // Construir los parámetros URL-encoded para enviar en el cuerpo de la solicitud POST
+        const params = new URLSearchParams();
+        params.append('ID_PROD', id);
+
+        // Enviar una solicitud POST al servidor para eliminar el producto
+        const response = await fetch(`${ALMACEN_URL}/delete`, {
+            method: 'POST',
+            body: params,
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
         });
+
+        // Verificar si la respuesta es exitosa
+        if (!response.ok) {
+            const errorData = await response.json();
+            return res.status(response.status).json(errorData);
+        }
+
         const data = await response.json();
         return res.json(data);
     } catch (err) {
@@ -99,7 +113,6 @@ app.delete('/deleteProduct/:id', async (req, res) => {
         return res.status(500).json({error:"Error al comunicarse con el servicio Almacén"});
     }
 });
-
 // Endpoint para ver el estado del nodo RAFT en Java (opcional)
 app.get('/status', async (req,res) => {
     try {
