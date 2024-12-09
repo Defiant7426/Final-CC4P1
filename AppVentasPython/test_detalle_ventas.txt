@@ -1,0 +1,5 @@
+1|1|Producto A|Unidad|1|100.00|100.00
+2|2|Producto B|Unidad|2|100.00|200.00
+3|3|Producto C|Unidad|3|100.00|300.00
+4|4|Producto D|Unidad|4|100.00|400.00
+5|5|Producto E|Unidad|5|100.00|500.00
