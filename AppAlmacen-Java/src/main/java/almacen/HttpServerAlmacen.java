@@ -18,7 +18,7 @@ public class HttpServerAlmacen {
 
         // Handlers CRUD
         server.createContext("/create", new CreateHandler(service, raftNode)); // Para crear un nuevo registro
-        server.createContext("/read", new ReadHandler(service)); // Para leer un registro
+        server.createContext("/read", new ReadHandler(service, raftNode)); // Para leer un registro
         server.createContext("/update", new UpdateHandler(service, raftNode)); // Para actualizar un registro
         server.createContext("/delete", new DeleteHandler(service, raftNode)); // Para eliminar un registro
 
