@@ -24,33 +24,98 @@ public class UpdateHandler implements HttpHandler {
     @Override
     public void handle(HttpExchange exchange) throws IOException {
         if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
-            exchange.sendResponseHeaders(405, -1);
+            exchange.sendResponseHeaders(405, -1); // Método no permitido
             exchange.close();
             return;
         }
 
-        String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
-        Map<String,String> params = parseParams(body);
+        if (!raft.isLeader()) {
+            String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+            int responseCode = raft.redirectToLeader(body);
+            if (responseCode == -1) {
+                String response = "{\"error\":\"Error redirigiendo al líder\"}";
+                System.out.println(response);
+                exchange.sendResponseHeaders(500, response.length());
+                try (OutputStream os = exchange.getResponseBody()) {
+                    os.write(response.getBytes(StandardCharsets.UTF_8));
+                }
+                exchange.close();
+            } else {
+                String response = "{\"status\":\"Redirigido al líder\"}";
+                System.out.println(response);
+                exchange.sendResponseHeaders(200, response.length());
+                try (OutputStream os = exchange.getResponseBody()) {
+                    os.write(response.getBytes(StandardCharsets.UTF_8));
+                }
+                exchange.close();
+            }
+            return;
+        }
 
-        boolean ok = service.updateRecord(params);
-        String response = ok ? "{\"status\":\"ok\"}" : "{\"status\":\"not_found\"}";
+        System.out.println("HTTP Líder: Recibiendo petición de actualización de registro");
+
+        String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+        Map<String, String> params = parseParams(body);
+
+        String id = params.get("ID_PROD");
+        if (id == null || id.isEmpty()) {
+            String response = "{\"error\":\"ID_PROD no proporcionado\"}";
+            exchange.sendResponseHeaders(400, response.length());
+            try (OutputStream os = exchange.getResponseBody()) {
+                os.write(response.getBytes(StandardCharsets.UTF_8));
+            }
+            exchange.close();
+            return;
+        }
+
+        boolean updateSuccess = service.updateRecord(params);
+        if (!updateSuccess) {
+            String response = "{\"error\":\"Registro no encontrado o fallo en la actualización\"}";
+            exchange.sendResponseHeaders(404, response.length());
+            try (OutputStream os = exchange.getResponseBody()) {
+                os.write(response.getBytes(StandardCharsets.UTF_8));
+            }
+            exchange.close();
+            return;
+        }
+
+        // Construir el comando con el formato que espera applyCommand
+        // Formato: "update ID_PROD campo1=valor1 campo2=valor2 ..."
+        StringBuilder commandBuilder = new StringBuilder("update ");
+        commandBuilder.append(params.get("ID_PROD"));
+
+        for (Map.Entry<String, String> entry : params.entrySet()) {
+            if (!entry.getKey().equals("ID_PROD")) {
+                commandBuilder.append(" ").append(entry.getKey()).append("=").append(entry.getValue());
+            }
+        }
+
+        String command = commandBuilder.toString();
+        int index = raft.appendLogEntry(command); // Agregar la operación al log
+        raft.replicatedLogEntry(index); // Replicar la operación
+
+        String response = "{\"status\":\"accepted\"}";
         byte[] respBytes = response.getBytes(StandardCharsets.UTF_8);
-        exchange.sendResponseHeaders(200, respBytes.length);
-        OutputStream os = exchange.getResponseBody();
-        os.write(respBytes);
-        os.close();
+        exchange.sendResponseHeaders(202, respBytes.length);
+        try (OutputStream os = exchange.getResponseBody()) {
+            os.write(respBytes);
+        }
+        exchange.close();
     }
 
-    private Map<String,String> parseParams(String body) {
-        Map<String,String> map = new HashMap<>();
+    /**
+     * Parsear los parámetros URL-encoded del cuerpo de la solicitud a un mapa.
+     */
+    private Map<String, String> parseParams(String body) {
+        Map<String, String> map = new HashMap<>();
         if (body.isEmpty()) return map;
         String[] pairs = body.split("&");
         for (String pair : pairs) {
             String[] kv = pair.split("=");
-            if (kv.length==2) {
+            if (kv.length == 2) {
                 String key = URLDecoder.decode(kv[0], StandardCharsets.UTF_8);
                 String val = URLDecoder.decode(kv[1], StandardCharsets.UTF_8);
-                map.put(key,val);
+                map.put(key, val);
             }
         }
         return map;
