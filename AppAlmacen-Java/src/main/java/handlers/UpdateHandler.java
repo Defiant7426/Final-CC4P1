@@ -30,8 +30,35 @@ public class UpdateHandler implements HttpHandler {
         }
 
         if (!raft.isLeader()) {
+            // Leer el cuerpo de la solicitud
             String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
-            int responseCode = raft.redirectToLeader(body);
+            Map<String, String> params = parseParams(body);
+
+            String id = params.get("ID_PROD");
+            if (id == null || id.isEmpty()) {
+                String response = "{\"error\":\"ID_PROD no proporcionado\"}";
+                exchange.sendResponseHeaders(400, response.length());
+                try (OutputStream os = exchange.getResponseBody()) {
+                    os.write(response.getBytes(StandardCharsets.UTF_8));
+                }
+                exchange.close();
+                return;
+            }
+
+            // Construir el comando de actualización
+            StringBuilder commandBuilder = new StringBuilder("update ");
+            commandBuilder.append(id);
+
+            for (Map.Entry<String, String> entry : params.entrySet()) {
+                if (!entry.getKey().equals("ID_PROD")) {
+                    commandBuilder.append(" ").append(entry.getKey()).append("=").append(entry.getValue());
+                }
+            }
+
+            String command = commandBuilder.toString();
+
+            // Enviar el comando al líder
+            int responseCode = raft.redirectToLeader(command);
             if (responseCode == -1) {
                 String response = "{\"error\":\"Error redirigiendo al líder\"}";
                 System.out.println(response);
@@ -52,6 +79,7 @@ public class UpdateHandler implements HttpHandler {
             return;
         }
 
+        // Si es líder, procesar la solicitud de actualización
         System.out.println("HTTP Líder: Recibiendo petición de actualización de registro");
 
         String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
@@ -82,7 +110,7 @@ public class UpdateHandler implements HttpHandler {
         // Construir el comando con el formato que espera applyCommand
         // Formato: "update ID_PROD campo1=valor1 campo2=valor2 ..."
         StringBuilder commandBuilder = new StringBuilder("update ");
-        commandBuilder.append(params.get("ID_PROD"));
+        commandBuilder.append(id);
 
         for (Map.Entry<String, String> entry : params.entrySet()) {
             if (!entry.getKey().equals("ID_PROD")) {

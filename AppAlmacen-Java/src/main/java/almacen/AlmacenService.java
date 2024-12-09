@@ -47,7 +47,7 @@ public class AlmacenService {
             System.err.println("Comando create inválido, se necesitan 6 partes, comando: " + command);
             return;
         }
-        Map<String,String> data = new HashMap<>();
+        Map<String, String> data = new HashMap<>();
         data.put("NAME_PROD", parts[1]);
         data.put("DETAIL", parts[2]);
         data.put("UNIT", parts[3]);
@@ -63,12 +63,15 @@ public class AlmacenService {
         }
         String id = parts[1];
         Map<String, String> data = new HashMap<>();
+        data.put("ID_PROD", id); // Incluir ID_PROD en el mapa
+
         for (int i = 2; i < parts.length; i++) {
             String[] kv = parts[i].split("=");
             if (kv.length == 2) {
                 data.put(kv[0], kv[1]);
             }
         }
+        System.out.println("La data es: " + data);
         boolean success = updateRecord(data);
         if (success) {
             System.out.println("Registro actualizado con ID: " + id);
@@ -76,10 +79,21 @@ public class AlmacenService {
             System.err.println("Fallo al actualizar el registro con ID: " + id);
         }
     } else if (action.equals("delete")) {
-        // ...
+        if (parts.length < 2) {
+            System.err.println("Comando delete inválido, se necesita ID_PROD, comando: " + command);
+            return;
+        }
+        String id = parts[1];
+        boolean success = deleteRecord(id);
+        if (success) {
+            System.out.println("Registro eliminado con ID: " + id);
+        } else {
+            System.err.println("Fallo al eliminar el registro con ID: " + id);
+        }
     } else {
         System.err.println("Acción desconocida: " + action);
     }
 }
+
 
 }

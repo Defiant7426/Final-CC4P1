@@ -212,35 +212,36 @@ public class RaftNode {
         }
     }
 
-    public int redirectToLeader(String entry) {
-        System.out.println("RAFT: Redirigiendo petición al líder, que es " + leaderId);
-        if (role == RaftRole.LEADER) return -1;
-        try {
-            URL url = new URL(leaderId + "/appendLogEntry");
-            HttpURLConnection con = (HttpURLConnection) url.openConnection();
-            con.setRequestMethod("POST");
-            con.setDoOutput(true);
-            con.setRequestProperty("Content-Type", "application/json");
-            String body = "{\"entry\":\"" + entry + "\"}";
-            try (OutputStream os = con.getOutputStream()) {
-                os.write(body.getBytes(StandardCharsets.UTF_8));
-            }
-            int code = con.getResponseCode();
-            if (code == 200) {
-                try (InputStream in = con.getInputStream()) {
-                    String resp = new String(in.readAllBytes(), StandardCharsets.UTF_8);
-                    System.out.println("RAFT: Respuesta del líder: " + resp);
-                    return Integer.parseInt(resp);
-                }
-            } else {
-                System.err.println("RAFT: Error redirigiendo al líder, código de respuesta: " + code);
-            }
-        } catch (Exception e) {
-            System.err.println("RAFT: Excepción redirigiendo al líder: " + e.getMessage());
-            e.printStackTrace();
+    public int redirectToLeader(String command) {
+    System.out.println("RAFT: Redirigiendo petición al líder, que es " + leaderId);
+    if (role == RaftRole.LEADER) return -1;
+    try {
+        URL url = new URL(leaderId + "/appendLogEntry");
+        HttpURLConnection con = (HttpURLConnection) url.openConnection();
+        con.setRequestMethod("POST");
+        con.setDoOutput(true);
+        con.setRequestProperty("Content-Type", "application/json");
+        String body = "{\"entry\":\"" + command + "\"}";
+        try (OutputStream os = con.getOutputStream()) {
+            os.write(body.getBytes(StandardCharsets.UTF_8));
         }
-        return -1;
+        int code = con.getResponseCode();
+        if (code == 200) {
+            try (InputStream in = con.getInputStream()) {
+                String resp = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+                System.out.println("RAFT: Respuesta del líder: " + resp);
+                return Integer.parseInt(resp);
+            }
+        } else {
+            System.err.println("RAFT: Error redirigiendo al líder, código de respuesta: " + code);
+        }
+    } catch (Exception e) {
+        System.err.println("RAFT: Excepción redirigiendo al líder: " + e.getMessage());
+        e.printStackTrace();
     }
+    return -1;
+}
+
 
     public boolean isLeader() {
         return role == RaftRole.LEADER;
