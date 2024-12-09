@@ -9,10 +9,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 
-/**
- * Handler que recibe la replicación de una entrada del log desde el líder.
- * Aplica el comando en la base de datos local.
- */
 public class ReplicateEntryHandler implements HttpHandler {
     private final RaftNode raftNode;
     private final AlmacenService service;
@@ -32,7 +28,7 @@ public class ReplicateEntryHandler implements HttpHandler {
             String command = parseCommandFromRequestBody(requestBody);
             int index = raftNode.appendLogEntry(command);
 
-            // Aplicar el comando en el seguidor
+            // **Aplicar el comando en el seguidor**
             service.applyCommand(command);
 
             String response = String.valueOf(index);
@@ -49,7 +45,7 @@ public class ReplicateEntryHandler implements HttpHandler {
     }
 
     private String parseCommandFromRequestBody(String requestBody) {
-        // Buscamos el campo "entry":"algo"
+        // Buscar "entry":" y tomar el valor
         String entryKey = "\"entry\":\"";
         int start = requestBody.indexOf(entryKey);
         if (start < 0) return "";

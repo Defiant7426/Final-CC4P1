@@ -1,5 +1,6 @@
 package almacen;
 
+import java.util.HashMap;
 import java.util.Map;
 
 public class AlmacenService {
@@ -37,29 +38,31 @@ public class AlmacenService {
     }
 
     public void applyCommand(String command) {
-        String[] parts = command.split(" ");
-        String action = parts[0];
-        if (action.equals("create")) {
-            Map<String,String> data = Map.of(
-                "NAME_PROD", parts[1],
-                "DETAIL", parts[2],
-                "UNIT", parts[3],
-                "AMOUNT", parts[4],
-                "COST", parts[5]
-            );
-            createRecord(data);
-        } else if (action.equals("update")) {
-            Map<String,String> data = Map.of(
-                "ID_PROD", parts[1],
-                "NAME_PROD", parts[2],
-                "DETAIL", parts[3],
-                "UNIT", parts[4],
-                "AMOUNT", parts[5],
-                "COST", parts[6]
-            );
-            updateRecord(data);
-        } else if (action.equals("delete")) {
-            deleteRecord(parts[1]);
+    System.out.println("Aplicando comando: " + command);
+    String[] parts = command.split(" ");
+    String action = parts[0];
+
+    if (action.equals("create")) {
+        if (parts.length < 6) {
+            System.err.println("Comando create inválido, se necesitan 6 partes, comando: " + command);
+            return;
         }
+        Map<String,String> data = new HashMap<>();
+        data.put("NAME_PROD", parts[1]);
+        data.put("DETAIL", parts[2]);
+        data.put("UNIT", parts[3]);
+        data.put("AMOUNT", parts[4]);
+        data.put("COST", parts[5]);
+
+        String id = createRecord(data);
+        System.out.println("Registro creado con ID: " + id);
+    } else if (action.equals("update")) {
+        // ...
+    } else if (action.equals("delete")) {
+        // ...
+    } else {
+        System.err.println("Acción desconocida: " + action);
     }
+}
+
 }

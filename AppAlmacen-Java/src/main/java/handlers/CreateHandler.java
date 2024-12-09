@@ -30,9 +30,8 @@ public class CreateHandler implements HttpHandler {
         }
 
         if(!raft.isLeader()) {
-            // Si no somos líder, redirigimos la petición al líder
-            String entry = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
-            int responseCode = raft.redirectToLeader(entry);
+            String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+            int responseCode = raft.redirectToLeader(body);
             if (responseCode == -1) {
                 String response = "Error redirigiendo al líder";
                 System.out.println(response);
@@ -61,16 +60,16 @@ public class CreateHandler implements HttpHandler {
         String id = service.createRecord(params);
         System.out.println("HTTP Lider: Registro creado con id: "+id);
 
-        // Construir el comando completo
-        String command = "create " +
-                (params.get("NAME_PROD") == null ? "" : params.get("NAME_PROD")) + " " +
-                (params.get("DETAIL") == null ? "" : params.get("DETAIL")) + " " +
-                (params.get("UNIT") == null ? "" : params.get("UNIT")) + " " +
-                (params.get("AMOUNT") == null ? "" : params.get("AMOUNT")) + " " +
-                (params.get("COST") == null ? "" : params.get("COST"));
+        // Construir el comando con el formato que espera applyCommand
+        String command = "create "
+                + (params.get("NAME_PROD") == null ? "" : params.get("NAME_PROD")) + " "
+                + (params.get("DETAIL") == null ? "" : params.get("DETAIL")) + " "
+                + (params.get("UNIT") == null ? "" : params.get("UNIT")) + " "
+                + (params.get("AMOUNT") == null ? "" : params.get("AMOUNT")) + " "
+                + (params.get("COST") == null ? "" : params.get("COST"));
 
         int index = raft.appendLogEntry(command); // Agregar la operación al log
-        raft.replicatedLogEntry(index); // Replicar la operación a otros nodos
+        raft.replicatedLogEntry(index); // Replicar la operación
 
         String response = "{\"status\":\"accepted\"}";
         byte[] respBytes = response.getBytes(StandardCharsets.UTF_8);

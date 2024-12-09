@@ -5,9 +5,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.io.*;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 public class RaftNode {
     private final String[] peers;
@@ -19,7 +17,12 @@ public class RaftNode {
     private String leaderId = null;
     private final String ip = "http://127.0.0.1:";
     private int port = -1;
-    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+
+    // Scheduler para heartbeats
+    private final ScheduledExecutorService heartbeatScheduler = Executors.newScheduledThreadPool(1);
+    // Executor separado para replicación
+    private final ExecutorService replicationExecutor = Executors.newFixedThreadPool(3);
+
     private long lastHeartbeat = System.currentTimeMillis();
 
     public RaftNode(int port, String[] peers) {
@@ -30,7 +33,7 @@ public class RaftNode {
     }
 
     private void startFollowerTimeout() {
-        scheduler.scheduleAtFixedRate(() -> {
+        heartbeatScheduler.scheduleAtFixedRate(() -> {
             long now = System.currentTimeMillis();
             System.out.println("RAFT: Role="+role+", LastHeartbeat="+(now-lastHeartbeat)+" Term="+currentTerm);
             if (role == RaftRole.FOLLOWER && (now - lastHeartbeat > 3000)) {
@@ -100,7 +103,8 @@ public class RaftNode {
     }
 
     private void startHeartbeats() {
-        scheduler.scheduleAtFixedRate(() -> {
+        // El envío de heartbeats permanece en un hilo separado e independiente de la replicación
+        heartbeatScheduler.scheduleAtFixedRate(() -> {
             if (role == RaftRole.LEADER) {
                 sendHeartbeats();
             }
@@ -171,22 +175,26 @@ public class RaftNode {
         return index;
     }
 
-    public synchronized void replicatedLogEntry(int index) {
-        System.out.println("RAFT: Replicando entrada "+index);
-        if (role != RaftRole.LEADER) return;
-        if (index < 0 || index >= log.size()) return;
-        String command = log.get(index).getCommand();
+    public void replicatedLogEntry(int index) {
+        // Llamamos en un hilo separado para no bloquear el hilo de heartbeats
+        replicationExecutor.submit(() -> {
+            synchronized (this) {
+                System.out.println("RAFT: Replicando entrada "+index);
+                if (role != RaftRole.LEADER) return;
+                if (index < 0 || index >= log.size()) return;
+                String command = log.get(index).getCommand();
 
-        for (String peer : peers) {
-            System.out.println("RAFT: Replicando entrada "+index+" a "+peer);
-            System.out.println("command: "+command);
-            replicateEntry(peer, index, command);
-        }
+                for (String peer : peers) {
+                    System.out.println("RAFT: Replicando entrada "+index+" a "+peer);
+                    System.out.println("command: "+command);
+                    replicateEntry(peer, index, command);
+                }
+            }
+        });
     }
 
     private void replicateEntry(String peer, int index, String command) {
         try {
-            System.out.println("RAFT: Replicando entrada "+index+" a "+peer);
             URL url = new URL(peer+"/replicateEntry");
             HttpURLConnection con = (HttpURLConnection) url.openConnection();
             con.setConnectTimeout(2000);
