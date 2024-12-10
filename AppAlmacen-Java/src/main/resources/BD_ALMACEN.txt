@@ -1,14 +1,4 @@
 ID_PROD|NAME_PROD|DETAIL|UNIT|AMOUNT|COST
-11|Actualizado4|LapizHB123|pcs|6|0.5
-12|Actualizado5|OtroLaptop|200|66|0.5
-13|Actualizado3|14|9pulgadas|600|100
-1|Laptop Dell|Core i5|Unidad|999|999
-2|Otro|Óptico|Unidad|500|15.00
-3|Actualizado2|USB|Unidad|60|20.00
-4|Monitor LG|LED 24"|Unidad|30|150.00
-5|Impresora HP|LaserJet|Unidad|10|200.00
-6|Disco Duro Externo|1TB|Unidad|20|100.00
-7|Memoria USB|16GB|Unidad|50|10.00
-8|Parlantes Genius|2.1|Unidad|30|50.00
-9|Webcam Logitech|HD|Unidad|20|30.00
-10|Tablet Samsung|10"|Unidad|15|300.00
+1|Azucar Paramonga|Azucar rubia|kg|999|999
+2|Arroz Costeno|Graneadito|Unidad|kg|15.00
+3|Frejoles El Plebeyo|frejoles simple|kg|60|20.00
