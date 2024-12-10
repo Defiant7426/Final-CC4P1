@@ -1,4 +1,4 @@
 ID_PROD|NAME_PROD|DETAIL|UNIT|AMOUNT|COST
-1|Azucar Paramonga|Azucar rubia|kg|999|999
-2|Arroz Costeno|Graneadito|Unidad|kg|15.00
-3|Frejoles El Plebeyo|frejoles simple|kg|60|20.00
+1|Azucar_Paramonga|Azucar_rubia|kg|2|8
+2|Arroz_Costeno|Graneadito|0.750kg|3|5.5
+3|Frejoles_El_Plebeyo|frejoles_simple|0.5kg|5|6

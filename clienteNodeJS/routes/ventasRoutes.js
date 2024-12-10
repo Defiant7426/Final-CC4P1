@@ -4,7 +4,7 @@ const { body, validationResult } = require('express-validator');
 //const fetch = require('node-fetch'); // Solo necesario si usas Node.js < 18
 
 module.exports = (VENTAS_URL) => {
-    const router = express.Router();
+    const router = express.Router();   
 
     // Crear una venta en AppVentas con validaciones
     router.post('/createSale', [

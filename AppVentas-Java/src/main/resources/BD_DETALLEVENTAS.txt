@@ -1,12 +1,4 @@
 ID_SALES|ID_PROD|NAME_PROD|UNIT|AMOUNT|COST|TOTAL
-1|1|Producto|Unidad|8888|8888|8888
-1|2|Producto|Unidad|10|100|1000
-2|2|Producto B|Unidad|20|100.00|2000.00
-3|3|Producto C|Unidad|15|100.00|1500.00
-4|4|Producto D|Unidad|25|100.00|2500.00
-5|5|Producto E|Unidad|30|100.00|3000.00
-6|6|Producto F|Unidad|35|100.00|3500.00
-10|10|Producto J|Unidad|55|100.00|5500.00
-7|7|Producto G|Unidad|40|100.00|4000.00
-8|8|Producto H|Unidad|45|100.00|4500.00
-9|9|Producto I|Unidad|50|100.00|5000.00
+123Ped|3|Frejoles_El_Plebeyo|0.5kg|1|6|6
+123Ped|2|Arroz_Costeno|0.750kg|2|5.5|11
+123Ped|1|Azucar_Paramonga|kg|2|8|16
