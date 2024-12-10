@@ -113,17 +113,6 @@ app.delete('/deleteProduct/:id', async (req, res) => {
         return res.status(500).json({error:"Error al comunicarse con el servicio Almacén"});
     }
 });
-// Endpoint para ver el estado del nodo RAFT en Java (opcional)
-app.get('/status', async (req,res) => {
-    try {
-        const response = await fetch(`${ALMACEN_URL}/status`);
-        const data = await response.json();
-        return res.json(data);
-    } catch (err) {
-        console.error(err);
-        return res.status(500).json({error:"Error al comunicarse con el servicio Almacén"});
-    }
-});
 
 // Iniciar el servidor Node.js
 const PORT = process.env.PORT || 3000;
