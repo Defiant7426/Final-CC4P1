@@ -11,7 +11,12 @@ dotenv.config();
 const app = express();
 
 // Middleware
-app.use(cors()); // Opcional
+//app.use(cors()); // Opcional
+app.use(cors({
+    origin: '*', // Permite cualquier origen
+    methods: ['GET', 'POST', 'PUT', 'DELETE'], // Permite estos métodos
+    allowedHeaders: ['Content-Type', 'Authorization'] // Permite estos encabezados
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
